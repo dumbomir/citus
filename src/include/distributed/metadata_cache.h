@@ -131,10 +131,11 @@ extern Oid CitusReadIntermediateResultFuncId(void);
 extern Oid CitusExtraDataContainerFuncId(void);
 extern Oid CitusWorkerHashFunctionId(void);
 
-/* nodeRole enum oids */
+/* enum oids */
 extern Oid PrimaryNodeRoleId(void);
 extern Oid SecondaryNodeRoleId(void);
 extern Oid UnavailableNodeRoleId(void);
+extern Oid BinaryCopyFormatId(void);
 
 /* user related functions */
 extern Oid CitusExtensionOwner(void);

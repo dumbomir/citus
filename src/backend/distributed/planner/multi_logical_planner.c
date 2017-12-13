@@ -1313,20 +1313,17 @@ DeferErrorIfUnsupportedTableCombination(Query *queryTree)
 		{
 			/* accepted */
 		}
+		else if (IsReadIntermediateResultRTE(rangeTableEntry))
+		{
+			/*
+			 * The read_intermediate_result function is volatile, but we know
+			 * it has the same result across all nodes and can therefore treat
+			 * it as a reference table.
+			 */
+		}
 		else if (rangeTableEntry->rtekind == RTE_FUNCTION)
 		{
-			List *functionList = rangeTableEntry->functions;
-
-			if (list_length(functionList) == 1 &&
-				ContainsReadIntermediateResultFunction(linitial(functionList)))
-			{
-				/*
-				 * The read_intermediate_result function is volatile, but we know
-				 * it has the same result across all nodes and can therefore treat
-				 * it as a reference table.
-				 */
-			}
-			else if (contain_mutable_functions((Node *) functionList))
+			if (contain_mutable_functions((Node *) rangeTableEntry->functions))
 			{
 				unsupportedTableCombination = true;
 				errorDetail = "Only immutable functions can be used as a table "
@@ -2176,10 +2173,7 @@ HasRecurringTuples(Node *node, RecurringTuplesType *recurType)
 		}
 		else if (rangeTableEntry->rtekind == RTE_FUNCTION)
 		{
-			List *functionList = rangeTableEntry->functions;
-
-			if (list_length(functionList) == 1 &&
-				ContainsReadIntermediateResultFunction((Node *) functionList))
+			if (IsReadIntermediateResultRTE(rangeTableEntry))
 			{
 				*recurType = RECURRING_TUPLES_RESULT_FUNCTION;
 			}
@@ -2218,6 +2212,32 @@ HasRecurringTuples(Node *node, RecurringTuplesType *recurType)
 	}
 
 	return expression_tree_walker(node, HasRecurringTuples, recurType);
+}
+
+
+/*
+ * IsReadIntermediateResultRTE returns whether the given RTE specifies
+ * a read_intermediate_result call.
+ */
+bool
+IsReadIntermediateResultRTE(RangeTblEntry *rangeTableEntry)
+{
+	if (rangeTableEntry->rtekind != RTE_FUNCTION)
+	{
+		return false;
+	}
+
+	if (list_length(rangeTableEntry->functions) != 1)
+	{
+		return false;
+	}
+
+	if (!ContainsReadIntermediateResultFunction((Node *) rangeTableEntry->functions))
+	{
+		return false;
+	}
+
+	return true;
 }
 
 
